@@ -878,18 +878,18 @@ def main():
         ["SABER DCT BRASO DCT WESUL DCT LAM", 16000, "LTC_N_CTR"]
     ])
 
-    stdArrival(masterCallsign, controllerSock, "EGSS", 100, [  # SS arrivals
-        ["AVANT DCT HAZEL DCT SILVA DCT BOMBO DCT BKY DCT BUSTA DCT LOREL", 13000, "LTC_N_CTR"],
-        ["ROGBI DCT FINMA DCT BOMBO DCT BKY DCT BUSTA DCT LOREL", 15000, "LTC_N_CTR"],
-        ["VATON DCT BPK DCT BKY DCT BUSTA DCT LOREL", 16000, "LTC_N_CTR"],
-    ])
+    # stdArrival(masterCallsign, controllerSock, "EGSS", 100, [  # SS arrivals
+    #     ["AVANT DCT HAZEL DCT SILVA DCT BOMBO DCT BKY DCT BUSTA DCT LOREL", 13000, "LTC_N_CTR"],
+    #     ["ROGBI DCT FINMA DCT BOMBO DCT BKY DCT BUSTA DCT LOREL", 15000, "LTC_N_CTR"],
+    #     ["VATON DCT BPK DCT BKY DCT BUSTA DCT LOREL", 16000, "LTC_N_CTR"],
+    # ])
 
-    stdArrival(masterCallsign, controllerSock, "EGGW", 100, [  # GW arrivals
-        ["AVANT DCT HAZEL DCT SILVA DCT WOBUN DCT EDCOX DCT JUMZI DCT ZAGZO", 13000, "LTC_N_CTR"],
-        ["ROGBI DCT FINMA DCT WOBUN DCT EDCOX DCT JUMZI DCT ZAGZO", 15000, "LTC_N_CTR"],
-        ["VATON DCT OZZOT DCT BPK DCT ILLOC DCT OXDUF DCT COCCU DCT JUMZI DCT ZAGZO", 16000, "LTC_N_CTR"],
-        ["MUCTE DCT OFJES DCT UDDIZ DCT COCCU DCT JUMZI DCT ZAGZO", 14000, "LTC_N_CTR"],
-    ])
+    # stdArrival(masterCallsign, controllerSock, "EGGW", 100, [  # GW arrivals
+    #     ["AVANT DCT HAZEL DCT SILVA DCT WOBUN DCT EDCOX DCT JUMZI DCT ZAGZO", 13000, "LTC_N_CTR"],
+    #     ["ROGBI DCT FINMA DCT WOBUN DCT EDCOX DCT JUMZI DCT ZAGZO", 15000, "LTC_N_CTR"],
+    #     ["VATON DCT OZZOT DCT BPK DCT ILLOC DCT OXDUF DCT COCCU DCT JUMZI DCT ZAGZO", 16000, "LTC_N_CTR"],
+    #     ["MUCTE DCT OFJES DCT UDDIZ DCT COCCU DCT JUMZI DCT ZAGZO", 14000, "LTC_N_CTR"],
+    # ])
 
     stdDeparture(masterCallsign, controllerSock, "EGKK", 90, [  # KK departures
         ["HARDY1X/26L HARDY M605 XIDIL", "LFPG"],
@@ -910,15 +910,15 @@ def main():
         ["BPK7F/27R BPK Q295 BRAIN M197 REDFA", "EHAM"]
     ])
 
-    stdDeparture(masterCallsign, controllerSock, "EGSS", 180, [  # SS departures
-        ["DET2R/22 DET M604 LYD M189 WAFFU UM605 XIDIL", "LFPG"],
-        ["NUGBO1R/22 NUGBO M183 SILVA P86 SAWPE", "EGGD"]
-    ])
+    # stdDeparture(masterCallsign, controllerSock, "EGSS", 180, [  # SS departures
+    #     ["DET2R/22 DET M604 LYD M189 WAFFU UM605 XIDIL", "LFPG"],
+    #     ["NUGBO1R/22 NUGBO M183 SILVA P86 SAWPE", "EGGD"]
+    # ])
 
-    stdDeparture(masterCallsign, controllerSock, "EGGW", 180, [  # GW departures
-        ["DET3Y/25 DET DCT TIMBA", "EGKK"],
-        ["RODNI1B/25 RODNI N27 ICTAM", "EGGD"],
-    ])
+    # stdDeparture(masterCallsign, controllerSock, "EGGW", 180, [  # GW departures
+    #     ["DET3Y/25 DET DCT TIMBA", "EGKK"],
+    #     ["RODNI1B/25 RODNI N27 ICTAM", "EGGD"],
+    # ])
 
     # SS
     # stdArrival(masterCallsign, controllerSock, "EGSS", 95, [  # SS arrivals
