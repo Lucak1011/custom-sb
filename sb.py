@@ -1,5 +1,6 @@
 import socket
 import threading
+from Constants import ACTIVE_CONTROLLERS
 
 PORT = 6809  # 6810 for internet connection
 
@@ -54,6 +55,7 @@ class ControllerHandler:
             return 1  # forward message to other controllers
 
         elif message[0].startswith("$CQ" + self.callsign):
+            print(message)
             if message[2] == "IP":
                 self.sock.sendall(esConvert("$CR" + self.server, self.callsign, "ATC", "Y", self.callsign))
                 return 0
@@ -147,10 +149,11 @@ def handle_client(conn: socket.socket, addr):
                 status = messageHandler.handle(message)
                 if status == 1:
                     for controller in controllers:
-                        if controller.callsign != messageHandler.callsign:
+                        if controller.callsign != messageHandler.callsign:  # not us, but is an actual human that cares about packets  #  and controller.callsign in ACTIVE_CONTROLLERS
                             controller.sock.sendall(esConvert(message))
                 elif status == 2:
                     for controller in controllers:
+                        # if controller.callsign in ACTIVE_CONTROLLERS:
                         controller.sock.sendall(esConvert(message))
 
         except ConnectionResetError:

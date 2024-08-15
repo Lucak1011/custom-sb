@@ -1,4 +1,5 @@
 import math
+import shelve
 import time
 
 from FlightPlan import FlightPlan
@@ -49,15 +50,15 @@ class Plane:
         self.dieOnReaching2K = False
         self.lvlCoords = None
 
-        if AUTO_ASSUME:
-            if self.mode == PlaneMode.FLIGHTPLAN or self.mode == PlaneMode.HEADING:  # take aircraft
-                index = util.otherControllerIndex(self.currentSector)
-                if index is None:
-                    return
-                controllerSock = otherControllerSocks[index]
-                # 10 second delay 
+        # if AUTO_ASSUME:
+        #     if self.mode == PlaneMode.FLIGHTPLAN or self.mode == PlaneMode.HEADING:  # take aircraft
+        #         index = util.otherControllerIndex(self.currentSector)
+        #         if index is None:
+        #             return
+        #         controllerSock = otherControllerSocks[index]
+        #         # 10 second delay 
 
-                util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + self.currentSector, "@94835", "IT", callsign])
+        #         util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + self.currentSector, "@94835", "IT", callsign])
 
     def calculatePosition(self):
         deltaT = (time.time() - self.lastTime) * timeMultiplier
@@ -146,13 +147,16 @@ class Plane:
             distanceOut = util.haversine(self.lat, self.lon, self.clearedILS[1][0], self.clearedILS[1][1]) / 1.852  # nautical miles
             requiredAltitude = math.tan(math.radians(3)) * distanceOut * 6076  # feet
 
+            if self.speed > self.targetSpeed:
+                self.speed -= 1.5 * deltaT
+                self.speed = round(self.speed, 0)
+
             if distanceOut < 4:
                 if self.speed > 125:
                     self.speed -= 0.75 * deltaT
                 if self.speed < 125:
                     self.speed = 125 
-                
-                self.speed = round(self.speed, 0)
+                            
 
             if self.altitude > requiredAltitude:
                 if self.altitude - requiredAltitude > 1000:  # Joined ILS too high
@@ -165,16 +169,67 @@ class Plane:
             self.lon = round(self.lon, 5)
         elif self.mode == PlaneMode.HEADING:
             if self.holdStartTime is not None:
-                # NEW LOGIC: JUST ORBIT!
-                if self.turnDir == "L":
-                    self.heading -= TURN_RATE * deltaT
-                else:
-                    self.heading += TURN_RATE * deltaT
-                self.targetHeading = self.heading
-                # if time.time() - self.holdStartTime >= 30:  # 30 sec hold legs
-                #     self.holdStartTime = time.time()
-                #     self.targetHeading += 180
-                #     self.targetHeading = self.targetHeading % 360
+                # JUST ORBIT LOGIC:
+                # if self.turnDir == "L":
+                #     self.heading -= TURN_RATE * deltaT
+                # else:
+                #     self.heading += TURN_RATE * deltaT
+                # self.targetHeading = self.heading
+                if self.heading != self.targetHeading:
+                    self.holdStartTime = time.time()
+
+                elif time.time() - self.holdStartTime >= 60:  # 60 sec hold legs
+                    print("TURN!")
+                    self.holdStartTime = time.time()
+
+                    holdPos = FIXES[self.holdFix]
+
+                    if util.haversine(self.lat, self.lon, holdPos[0], holdPos[1]) < 0.5:  # 0.5nm from fix
+                        if self.holdFix == "BIG":  # please don't do this
+                            self.heading = 302
+                            self.turnDir = "R"
+                        elif self.holdFix == "LAM":
+                            self.heading = 262
+                            self.turnDir = "L"
+                        elif self.holdFix == "BNN":
+                            self.heading = 116
+                            self.turnDir = "R"
+                        elif self.holdFix == "OCK":
+                            self.heading = 328
+                            self.turnDir = "R"
+                        elif self.holdFix == "TIMBA":
+                            self.heading = 307
+                            self.turnDir = "R"
+                        elif self.holdFix == "WILLO":
+                            self.heading = 284
+                            self.turnDir = "L"
+                        elif self.holdFix == "JACKO":
+                            self.heading = 264
+                            self.turnDir = "L"
+                        elif self.holdFix == "GODLU":
+                            self.heading = 309
+                            self.turnDir = "R"
+                        elif self.holdFix == "DAYNE":
+                            self.heading = 311
+                            self.turnDir = "R"
+                        elif self.holdFix == "ROSUN":
+                            self.heading = 172
+                            self.turnDir = "R"
+                        elif self.holdFix == "MIRSI":
+                            self.heading = 61
+                            self.turnDir = "R"
+                        else:
+                            self.heading = 307
+                            self.turnDir = "R"
+
+                        self.targetHeading = self.heading
+
+                        self.lat = holdPos[0]
+                        self.lon = holdPos[1]
+                    
+                    self.targetHeading += 180
+                    self.targetHeading = self.targetHeading % 360
+
             if self.targetHeading != self.heading:  # turns
                 if TURN_RATE * deltaT > abs(self.targetHeading - self.heading):
                     self.heading = self.targetHeading
@@ -202,17 +257,17 @@ class Plane:
             self.lon = round(self.lon, 5)
 
             nextSector = util.whichSector(self.lat, self.lon, self.altitude)
-            if AUTO_ASSUME:
-                if nextSector != self.currentSector and nextSector is not None:
-                    index = util.otherControllerIndex(self.currentSector)
-                    if index is not None:
-                        controllerSock = otherControllerSocks[index]
-                        if nextSector not in ACTIVE_CONTROLLERS:
-                            util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + nextSector, "@94835", "IT", self.callsign])
-                        else:  # pass em over
-                            util.PausableTimer(5, controllerSock.esSend, args=["$HO" + self.currentSector, ACTIVE_CONTROLLERS[0], self.callsign])
+            # if AUTO_ASSUME:
+            #     if nextSector != self.currentSector and nextSector is not None:
+            #         index = util.otherControllerIndex(self.currentSector)
+            #         if index is not None:
+            #             controllerSock = otherControllerSocks[index]
+            #             if nextSector not in ACTIVE_CONTROLLERS:
+            #                 util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + nextSector, "@94835", "IT", self.callsign])
+            #             else:  # pass em over
+            #                 util.PausableTimer(5, controllerSock.esSend, args=["$HO" + self.currentSector, ACTIVE_CONTROLLERS[0], self.callsign])
                         
-                        self.currentSector = nextSector
+            #             self.currentSector = nextSector
         elif self.mode == PlaneMode.FLIGHTPLAN:
             distanceToTravel = tas * (deltaT / 3600)
             try:
@@ -279,17 +334,17 @@ class Plane:
                 self.lon = round(self.lon, 5)
 
                 nextSector = util.whichSector(self.lat, self.lon, self.altitude)
-                if AUTO_ASSUME:
-                    if nextSector != self.currentSector and nextSector is not None:
-                        index = util.otherControllerIndex(self.currentSector)
-                        if index is not None:
-                            controllerSock = otherControllerSocks[index]
-                            if nextSector not in ACTIVE_CONTROLLERS:
-                                util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + nextSector, "@94835", "IT", self.callsign])
-                            else:
-                                util.PausableTimer(5, controllerSock.esSend, args=["$HO" + self.currentSector, ACTIVE_CONTROLLERS[0], self.callsign])
+                # if AUTO_ASSUME:
+                #     if nextSector != self.currentSector and nextSector is not None:
+                #         index = util.otherControllerIndex(self.currentSector)
+                #         if index is not None:
+                #             controllerSock = otherControllerSocks[index]
+                #             if nextSector not in ACTIVE_CONTROLLERS:
+                #                 util.PausableTimer(11, controllerSock.esSend, args=["$CQ" + nextSector, "@94835", "IT", self.callsign])
+                #             else:
+                #                 util.PausableTimer(5, controllerSock.esSend, args=["$HO" + self.currentSector, ACTIVE_CONTROLLERS[0], self.callsign])
                             
-                            self.currentSector = nextSector
+                #             self.currentSector = nextSector
         elif self.mode == PlaneMode.GROUND_STATIONARY:
             pass
         elif self.mode == PlaneMode.GROUND_TAXI:
@@ -354,7 +409,8 @@ class Plane:
                     return
 
         if activateHoldMode:
-            self.holdStartTime = time.time()
+            self.holdStartTime = time.time() - 60  # !!!! DODGY !!!
+            self.heading = 307
             self.targetHeading = 307
             self.mode = PlaneMode.HEADING
             self.turnDir = "R"
@@ -382,8 +438,19 @@ class Plane:
             elif self.holdFix == "GODLU":
                 self.heading = 309
                 self.turnDir = "R"
+            elif self.holdFix == "DAYNE":
+                self.heading = 311
+                self.turnDir = "R"
+            elif self.holdFix == "ROSUN":
+                self.heading = 172
+                self.turnDir = "R"
+            elif self.holdFix == "MIRSI":
+                self.heading = 61
+                self.turnDir = "R"
             else:
-                print("Hold fix not found")
+                print("Hold fix not found", self.holdFix)
+
+            self.targetHeading = self.heading
 
 
     def positionUpdateText(self, calculatePosition=True) -> bytes:
@@ -393,6 +460,7 @@ class Plane:
         if self.stand is not None or self.mode == PlaneMode.GROUND_READY:  # if we're pushing, display heading is 180 degrees off
             displayHeading += 180
             displayHeading %= 360
+
         return b'@N:' + self.callsign.encode("UTF-8") + b':' + str(self.squawk).encode("UTF-8") + b':1:' + str(self.lat).encode("UTF-8") + b':' + str(self.lon).encode("UTF-8") + b':' + str(self.altitude).encode("UTF-8") + b':' + str(self.speed).encode("UTF-8") + b':' + str(int((100 / 9) * displayHeading)).encode("UTF-8") + b':0\r\n'
 
     @classmethod
@@ -400,7 +468,7 @@ class Plane:
         try:
             coords = FIXES[fix]
         except KeyError:
-            print("Fix not found")
+            print("Fix not found", fix)
             coords = (51.15487, -0.16454)
         
         return cls(callsign, squawk, altitude, heading, speed, coords[0], coords[1], vertSpeed, PlaneMode.FLIGHTPLAN, flightPlan, currentlyWithData, firstController=firstController)
@@ -421,3 +489,9 @@ class Plane:
         # coords = loadRunwayData(airport)[ACTIVE_RUNWAY]   # TODO: Dynamic
         coords = list(loadRunwayData(airport).values())[0]
         return cls(callsign, squawk, altitude, heading, speed, coords[1][0], coords[1][1], vertSpeed, PlaneMode.FLIGHTPLAN, flightPlan, None)
+
+
+if __name__ == "__main__":
+    plane = Plane.requestFromFix("TEST", "MIMFO")
+    with shelve.open("planes") as planes:
+        planes[plane.callsign] = plane
