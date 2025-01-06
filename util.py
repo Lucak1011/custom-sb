@@ -6,7 +6,7 @@ import socket
 import time
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-from Constants import OTHER_CONTROLLERS, INACTIVE_SECTORS, PORT
+from Constants import OTHER_CONTROLLERS, INACTIVE_SECTORS, PORT, FLEET, AIRPORTS
 
 from PlaneMode import PlaneMode
 from sfparser import loadSectorData, sfCoordsToNormalCoords
@@ -25,14 +25,30 @@ def haversine(lat1, lon1, lat2, lon2):  # from https://rosettacode.org/wiki/Have
 
     return R * c
 
+def haversineNM(lat1, lon1, lat2, lon2):
+    return haversine(lat1, lon1, lat2, lon2) / 1.852
 
-def callsignGen():
-    callsign = ""
-    callsign += random.choice(["EZY", "DLH", "BAW", "RYR"])
-    callsign += random.choice(string.digits) + random.choice(string.digits) + random.choice(string.ascii_uppercase) + random.choice(string.ascii_uppercase)
 
-    # TODO: ensure callsign is unique
-    return callsign
+def callsignGen(dest,planes,attempts=5):
+    """
+    Returns a random callsign in the FORM ICAO NUMBER NUMBER LETTER LETTER
+    and a random aircraft type as defined in Constants.py
+    """
+    for _ in range(attempts):
+        callsign = ""
+        if dest in AIRPORTS.keys():
+            callsign += random.choice(AIRPORTS[dest])
+        else:
+            callsign += random.choice(list(FLEET.keys()))
+        ac_type = random.choice(FLEET[callsign])
+        callsign += random.choice(string.digits[1:]) 
+        callsign += random.choice(string.digits) if random.random() < 0.8 else ""
+        callsign += random.choice(string.ascii_uppercase) if random.random() < 0.5 else ""
+        callsign += random.choice(string.ascii_uppercase) if random.random() < 0.5 else ""
+
+        if callsign not in planes:
+            return callsign, ac_type
+    return callsign, ac_type # you got VERY unlucky lolz(1 in a very big number)
 
 
 def squawkGen():
@@ -44,6 +60,9 @@ def squawkGen():
 
     allocatedSquawks.append(squawk)
     return squawk
+
+def lerpBetweenCoords(start: tuple[float, float], end: tuple[float, float], t: float):
+    return (start[0] + t * (end[0] - start[0]), start[1] + t * (end[1] - start[1]))
 
 
 def headingFromTo(fromCoord: tuple[float, float], toCoord: tuple[float, float]) -> int:
@@ -100,6 +119,23 @@ def whichSector(lat: float, lon: float, alt: int) -> str:
         
     return sectorOut
 
+def pbd(lat: float, lon: float, bearing: int, dist: int):
+    lat_rad = math.radians(lat)
+    lon_rad = math.radians(lon)
+    bearing_rad = math.radians(bearing)
+    
+    R = 3440.065
+    
+    dest_lat_rad = math.asin(math.sin(lat_rad) * math.cos(dist / R) +
+                             math.cos(lat_rad) * math.sin(dist / R) * math.cos(bearing_rad))
+    
+    dest_lon_rad = lon_rad + math.atan2(math.sin(bearing_rad) * math.sin(dist / R) * math.cos(lat_rad),
+                                        math.cos(dist / R) - math.sin(lat_rad) * math.sin(dest_lat_rad))
+    
+    dest_lat = math.degrees(dest_lat_rad)
+    dest_lon = math.degrees(dest_lon_rad)
+    
+    return dest_lat, dest_lon
 
 def otherControllerIndex(callsign: str) -> int:
     for i, controller in enumerate(OTHER_CONTROLLERS):
@@ -155,7 +191,6 @@ class PlaneSocket(EsSocket):
         if plane.currentlyWithData is not None:
             PausableTimer(1, masterSock.esSend, args=["$CQ" + plane.currentlyWithData[0], "@94835", "IT", plane.callsign])  # Controller takes plane
             PausableTimer(1, masterSock.esSend, args=["$CQ" + plane.currentlyWithData[0], "@94835", "TA", plane.callsign, plane.altitude])  # Temp alt for arrivals
-            # masterSock.sendall(b'$CQ' + plane.currentlyWithData[0].encode("UTF-8") + b':@94835:IT:' + plane.callsign.encode("UTF-8") + b'\r\n')
 
         PausableTimer(1, masterSock.esSend, args=["$CQ" + masterCallsign, "@94835", "BC", plane.callsign, plane.squawk])  # Assign squawk
 
@@ -204,3 +239,13 @@ class PausableTimer(threading.Thread):
 
 if __name__ == "__main__":
     print(whichSector(*sfCoordsToNormalCoords(*"N052.24.50.722:W001.15.26.594".split(":")), 5000))
+    start_lat, start_lon = 51.47767, -0.43328
+    bearing = 269-180
+    for i in range(-5,20):
+        print(pbd(start_lat, start_lon, bearing, i))
+
+    for _ in range(100):
+        print(callsignGen("EGKK",[])[0])
+    
+
+
