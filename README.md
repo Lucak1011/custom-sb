@@ -18,6 +18,8 @@ Please note, this software is in rapid development, so may have bugs!
 ### Controlling the planes
 You can control what the planes do by assigning a speed, heading or level in the aircraft tag as you would do if you were controlling on the network. To clear an aircraft on the ILS, in the dropdown, select "CL/APP".
 
+To give a direct to an aircraft, right click the heading box in the tag and enter the waypoint. It is **not** possible to give an aircraft a direct that is not in their flightplan. 
+
 
 ### Adjusting what happens in the sweatbox
 
@@ -30,6 +32,8 @@ Profiles are located in the "profiles" directory. The way that these work is qui
 In the afformention section of code in main that involves the selection of these profiles, you need to change the file name to match the one that you want to use. 
 
 **YOU NEED TO FIND THE ROUTES YOURSELF**
+
+
 
 The constants file defines what positions users control, the master controller (the one that the position that the file uses to transfer aircraft) and, active aerodromes and their respective runways. Most of the profiles are configured for westerly runway operations. 
 
