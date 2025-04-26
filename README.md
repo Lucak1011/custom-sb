@@ -32,3 +32,10 @@ In the afformention section of code in main that involves the selection of these
 **YOU NEED TO FIND THE ROUTES YOURSELF**
 
 The constants file defines what positions users control, the master controller (the one that the position that the file uses to transfer aircraft) and, active aerodromes and their respective runways. Most of the profiles are configured for westerly runway operations. 
+
+
+## Known issues
+
+- Any user that disconnects causes the entire sweatbox to crash. 
+- The sweatbox will sometimes crash if it doesn't like what a user does. 
+- Aircraft will not turn right/left if it is over 180 degrees, it will take the shortest turn it can. If you need to give a turn like this, make 2 90 degree turns.
